@@ -19,28 +19,52 @@
 Если что-то сломалось, можем не заметить, а потом не понять, что именно там сломалось. Peшение: добавить healthcheck
 
 ## Запуск
-
-** Плохой вариант: **
+Создать файл `.env`, который содержит в себе такие переменные (+пример заполнения):
 ```
-docker build -t airflow-bad -f docker_bad.dockerfile .
-docker run -p 8080:8080 -d airflow-bad
-```
-
-** Хороший вариант: **
-```
-docker build -t airflow-good -f docker_good.dockerfile .
-docker run -d \
-  -v $(pwd)/dags:/opt/airflow/dags \
-  -v airflow-logs:/opt/airflow/logs \
-  -p 8080:8080 \
-  -e API_KEY="mysecretapikey" \
-  airflow-good
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+POSTGRES_DB=airflow
+AIRFLOW_ADMIN_USER=airflow
+AIRFLOW_ADMIN_PASSWORD=airflow
+AIRFLOW_ADMIN_EMAIL=airflow@airflow.com
 ```
 
-## Что не стоит засовывать в контейнер
+```
+ docker-compose up --build
+```
 
-1. Монолиты
-Оно тяжёлое, будет долго и сложно билдиться, а для того, чтобы поправить минорную деталь, придётся всё перебилдить. Неприятно.
 
-2. Маленькие одноразовые скрипты
-Если оно будет запускаться один раз, притом вручную, то не надо это засовывать в контейнер. Как и небольшие пет-проекты, потому что это оверкилл.
+## Структура
+
+1. Postgres-db
+БД. 
+
+2. airflow-init (в compose фалйе просто init)
+Создаём БД для airflow и создаём юзера-админа в БД
+
+3. airflow-webserver (в compose фалйе просто webserver)
+Веб-сервер airflow
+
+## Впоросы
+
+### Можно ли ограничивать ресурсы (например, память или CPU) для сервисов в docker-compose.yml? Если нет, то почему, если да, то как?
+
+Можно, для этого на этапе "deploy" можно прописать что-то такое:
+
+```
+deploy:
+  resources:
+    limits:
+      memory: 60m
+      cpus: '0.25'
+```
+
+### Как можно запустить только определенный сервис из docker-compose.yml, не запуская остальные?
+
+Да, так:
+
+```
+docker-compose up webserver
+```
+
+Поднимется только сервис webserver из compose файла
