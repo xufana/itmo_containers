@@ -9,8 +9,21 @@ stringData:
   NEXTCLOUD_ADMIN_USER: "admin"
   NEXTCLOUD_ADMIN_PASSWORD: "admin"
 ---
-kind: Deployment
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-configmap
+  labels:
+    app: nextcloud
+data:
+  POSTGRES_DB: "postgres"
+  NEXTCLOUD_UPDATE: "1"
+  ALLOW_EMPTY_PASSWORD: "yes"
+  POSTGRES_HOST: "postgres-service"
+  NEXTCLOUD_TRUSTED_DOMAINS: "127.0.0.1"
+---
 apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: nextcloud
   labels:
@@ -41,35 +54,62 @@ spec:
           protocol: TCP
         env:
         - name: NEXTCLOUD_UPDATE
-          value: '1'
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-configmap
+              key: NEXTCLOUD_UPDATE
         - name: ALLOW_EMPTY_PASSWORD
-          value: 'yes'
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-configmap
+              key: ALLOW_EMPTY_PASSWORD
         - name: POSTGRES_HOST
-          value: postgres-service
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-configmap
+              key: POSTGRES_HOST
         - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: postgres-configmap
               key: POSTGRES_DB
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: "127.0.0.1"
-        - name: POSTGRES_USER
           valueFrom:
             configMapKeyRef:
-              name: postgres-configmap
+              name: nextcloud-configmap
+              key: NEXTCLOUD_TRUSTED_DOMAINS
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
-            configMapKeyRef:
-              name: postgres-configmap
+            secretKeyRef:
+              name: postgres-secret
               key: POSTGRES_PASSWORD
         - name: NEXTCLOUD_ADMIN_USER
-          value: any_name_you_want
+          valueFrom:
+            secretKeyRef:
+              name: nextcloud-secret
+              key: NEXTCLOUD_ADMIN_USER
         - name: NEXTCLOUD_ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
               name: nextcloud-secret
               key: NEXTCLOUD_ADMIN_PASSWORD
         imagePullPolicy: IfNotPresent
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
       restartPolicy: Always
       dnsPolicy: ClusterFirst
