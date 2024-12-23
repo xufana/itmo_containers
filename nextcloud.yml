@@ -6,8 +6,8 @@ metadata:
     app: nextcloud
 type: Opaque
 stringData:
-  NEXTCLOUD_ADMIN_USER: "admin"
   NEXTCLOUD_ADMIN_PASSWORD: "admin"
+  POSTGRES_PASSWORD: "admin"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -16,10 +16,8 @@ metadata:
   labels:
     app: nextcloud
 data:
-  POSTGRES_DB: "postgres"
   NEXTCLOUD_UPDATE: "1"
   ALLOW_EMPTY_PASSWORD: "yes"
-  POSTGRES_HOST: "postgres-service"
   NEXTCLOUD_TRUSTED_DOMAINS: "127.0.0.1"
 ---
 apiVersion: apps/v1
@@ -39,77 +37,72 @@ spec:
         app: nextcloud
     spec:
       containers:
-      - name: nextcloud
-        image: docker.io/nextcloud:stable-apache
-        resources:
-          limits:
-            cpu: 500m
-            memory: 256Mi
-          requests:
-            cpu: 250m
-            memory: 128Mi
-        ports:
-        - name: http
-          containerPort: 80
-          protocol: TCP
-        env:
-        - name: NEXTCLOUD_UPDATE
-          valueFrom:
-            configMapKeyRef:
-              name: nextcloud-configmap
-              key: NEXTCLOUD_UPDATE
-        - name: ALLOW_EMPTY_PASSWORD
-          valueFrom:
-            configMapKeyRef:
-              name: nextcloud-configmap
-              key: ALLOW_EMPTY_PASSWORD
-        - name: POSTGRES_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: nextcloud-configmap
-              key: POSTGRES_HOST
-        - name: POSTGRES_DB
-          valueFrom:
-            configMapKeyRef:
-              name: postgres-configmap
-              key: POSTGRES_DB
-        - name: NEXTCLOUD_TRUSTED_DOMAINS
-          valueFrom:
-            configMapKeyRef:
-              name: nextcloud-configmap
-              key: NEXTCLOUD_TRUSTED_DOMAINS
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_PASSWORD
-        - name: NEXTCLOUD_ADMIN_USER
-          valueFrom:
-            secretKeyRef:
-              name: nextcloud-secret
-              key: NEXTCLOUD_ADMIN_USER
-        - name: NEXTCLOUD_ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: nextcloud-secret
-              key: NEXTCLOUD_ADMIN_PASSWORD
-        imagePullPolicy: IfNotPresent
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        - name: nextcloud
+          image: docker.io/nextcloud:stable-apache
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 250m
+              memory: 128Mi
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: NEXTCLOUD_UPDATE
+              valueFrom:
+                configMapKeyRef:
+                  name: nextcloud-configmap
+                  key: NEXTCLOUD_UPDATE
+            - name: ALLOW_EMPTY_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: nextcloud-configmap
+                  key: ALLOW_EMPTY_PASSWORD
+            - name: POSTGRES_HOST
+              value: postgres-service
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-configmap
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: NEXTCLOUD_ADMIN_USER
+              value: nextcloud_admin
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: NEXTCLOUD_ADMIN_PASSWORD
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
       restartPolicy: Always
       dnsPolicy: ClusterFirst
