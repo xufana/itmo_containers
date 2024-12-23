@@ -6,7 +6,7 @@
 3. Загрузка образа не нужна, поскольку в docker desktop общий registry для образов
 4. Создаем объекты для базы данных
    ![Apply Database](imgs/apply_database.jpg)
-   ![Postgres Working Show](imgs/postgres_working_show.jpg)
+   ![Postgres Working Show](imgs/posgtres_working_show.jpg)
 5. Разворачиваем контейнер с аппкой и инитом, получаем рабочие поды
    ![Working Deployment](imgs/working_deployment.jpg)
 6. Мы молодцы, все работает
